@@ -24,9 +24,9 @@ At startup:
 
 1. Aspire runs the AppHost in [test-aspnet-mvc.AppHost/Program.cs](test-aspnet-mvc.AppHost/Program.cs).
 2. The AppHost registers the legacy MVC app as an executable resource named `legacy-mvc`.
-3. That resource launches PowerShell, which runs [test-aspnet-mvc.AppHost/run-legacy-mvc.ps1](test-aspnet-mvc.AppHost/run-legacy-mvc.ps1).
-4. The script builds the MVC project by calling the existing [build.ps1](build.ps1).
-5. The script starts `iisexpress.exe` using the site definition from `.vs\test-aspnet-mvc.slnx\config\applicationhost.config`.
+3. That resource launches the console helper in [test-aspnet-mvc.IisRunner/Program.cs](test-aspnet-mvc.IisRunner/Program.cs).
+4. The helper builds the MVC project by calling the existing [build.ps1](build.ps1).
+5. In IIS Express mode, the helper starts `iisexpress.exe` using the site definition from `.vs\test-aspnet-mvc.slnx\config\applicationhost.config`.
 6. IIS Express serves the real site on port `51578`.
 7. Aspire exposes a proxy endpoint on port `5056`, which is the URL shown for the resource from the AppHost.
 
@@ -54,8 +54,8 @@ The separation between `5056` and `51578` matters. Aspire cannot own the same po
 
 - [test-aspnet-mvc.AppHost/Program.cs](test-aspnet-mvc.AppHost/Program.cs)
   Defines the Aspire executable resource and endpoint mapping.
-- [test-aspnet-mvc.AppHost/run-legacy-mvc.ps1](test-aspnet-mvc.AppHost/run-legacy-mvc.ps1)
-  Builds the MVC project and launches IIS Express.
+- [test-aspnet-mvc.IisRunner/Program.cs](test-aspnet-mvc.IisRunner/Program.cs)
+  Builds the MVC project and launches either IIS Express or full IIS depending on the selected mode.
 - [test-aspnet-mvc.AppHost/Properties/launchSettings.json](test-aspnet-mvc.AppHost/Properties/launchSettings.json)
   Provides the AppHost dashboard and resource-service settings needed for local `dotnet run`.
 - [test-aspnet-mvc.slnx](test-aspnet-mvc.slnx)
@@ -245,20 +245,19 @@ dotnet run --project .\test-aspnet-mvc.AppHost\test-aspnet-mvc.AppHost.csproj
 
 ### Process Model: Why a Polling Loop?
 
-**IIS Express** is a **foreground executable**. Aspire launches it as a child process and terminates it when needed.
+**IIS Express** is a **foreground executable**. The shared console runner launches it as a child process and terminates it when needed.
 
 **Full IIS** is a **Windows Service (W3SVC)** managed globally by the operating system. The AppHost cannot launch IIS itself; instead, it must:
 
 1. Configure the site and AppPool via `appcmd.exe`
 2. Start the AppPool and Site
-3. Enter a **polling loop** to remain alive (so Aspire sees the resource as healthy)
-4. Check the site state every 5 seconds; exit the loop if the site stops
-
-When Aspire terminates the script process, it uses `TerminateProcess` (harsh kill), which bypasses cleanup code. The IIS site continues running in the background — acceptable for local dev, as it can be manually stopped later or via IIS Manager.
+3. Start a watchdog helper so unexpected runner termination still stops the IIS site
+4. Enter a **polling loop** to remain alive (so Aspire sees the resource as healthy)
+5. Check the site state every few seconds; exit the loop if the site stops
 
 ### Implementation Details
 
-**Script:** [run-legacy-mvc-iis.ps1](../test-aspnet-mvc.AppHost/run-legacy-mvc-iis.ps1)
+**Runner:** [test-aspnet-mvc.IisRunner/Program.cs](../test-aspnet-mvc.IisRunner/Program.cs)
 
 **Parameters:**
 

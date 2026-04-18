@@ -5,4 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\test-aspnet-mvc.IisRunner\test-aspnet-mvc.IisRunner.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
 </Project>
