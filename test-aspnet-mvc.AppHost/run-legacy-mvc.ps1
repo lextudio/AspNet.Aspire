@@ -13,6 +13,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$DebugPreference = 'SilentlyContinue'
+$ProgressPreference = 'SilentlyContinue'
 
 if ($env:IIS_APPHOST_CONFIG) {
     $ConfigPath = $env:IIS_APPHOST_CONFIG
