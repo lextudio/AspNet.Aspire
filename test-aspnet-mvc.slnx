@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="test-aspnet-mvc.AppHost/test-aspnet-mvc.AppHost.csproj" />
   <Project Path="test-aspnet-mvc/test-aspnet-mvc.csproj" />
 </Solution>
